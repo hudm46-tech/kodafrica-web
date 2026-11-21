@@ -20,12 +20,18 @@ final class Database
         );
 
         try {
-            self::$pdo = new PDO($dsn, $cfg['user'], $cfg['pass'], [
+            $opts = [
                 PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES   => false,
                 PDO::ATTR_STRINGIFY_FETCHES  => false,
-            ]);
+            ];
+            if (!empty($cfg['ssl'])) {
+                // Managed MySQL hosts (TiDB Cloud, Aiven...) require TLS.
+                $opts[PDO::MYSQL_ATTR_SSL_CA] = '/etc/ssl/certs/ca-certificates.crt';
+                $opts[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = false;
+            }
+            self::$pdo = new PDO($dsn, $cfg['user'], $cfg['pass'], $opts);
         } catch (PDOException $e) {
             if (config('app.debug')) {
                 die('DB connection error: ' . $e->getMessage());

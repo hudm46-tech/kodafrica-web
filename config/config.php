@@ -32,6 +32,7 @@ return [
         'user' => $get('DB_USER', 'kodafirca_user'),
         'pass' => $get('DB_PASS', ''),
         'charset' => 'utf8mb4',
+        'ssl'  => filter_var($get('DB_SSL', 'false'), FILTER_VALIDATE_BOOL),
     ],
     'session' => [
         'lifetime' => (int)$get('SESSION_LIFETIME', '0'),
