@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <defs>
+    <linearGradient id="logoGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#00B4D8"/>
+      <stop offset="100%" stop-color="#0077B6"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Hexagon ring -->
+  <path d="M100 15 L173 57.5 L173 142.5 L100 185 L27 142.5 L27 57.5 Z"
+        stroke="url(#logoGrad)" stroke-width="6" fill="none"/>
+
+  <!-- K letterform -->
+  <path d="M78 60 L78 140 M78 100 L120 60 M78 100 L120 140"
+        stroke="url(#logoGrad)" stroke-width="10"
+        stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>

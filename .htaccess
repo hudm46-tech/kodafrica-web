@@ -1,0 +1,11 @@
+RewriteEngine On
+
+# Block dotfiles
+RewriteRule (^\.|/\.) - [F,L]
+
+# Block direct access to sensitive dirs
+RewriteRule ^(app|config|database|storage|vendor|lang)/ - [F,L]
+
+# Serve from public/
+RewriteCond %{REQUEST_URI} !^/public/
+RewriteRule ^(.*)$ public/$1 [L]
