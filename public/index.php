@@ -67,6 +67,10 @@ $router->get('/products/create',        [\App\Controllers\ProductController::cla
 $router->post('/products',              [\App\Controllers\ProductController::class, 'store']);
 $router->get('/products/{id}/edit',     [\App\Controllers\ProductController::class, 'edit']);
 $router->post('/products/{id}',         [\App\Controllers\ProductController::class, 'update']);
+$router->get('/products/{id}/purchase',  [\App\Controllers\PurchaseController::class, 'create']);
+$router->post('/products/{id}/purchase', [\App\Controllers\PurchaseController::class, 'store']);
+$router->get('/purchases',               [\App\Controllers\PurchaseController::class, 'index']);
+$router->post('/purchases/{id}/void',    [\App\Controllers\PurchaseController::class, 'void']);
 $router->post('/products/{id}/adjust',  [\App\Controllers\ProductController::class, 'adjustStock']);
 $router->post('/products/{id}/delete',  [\App\Controllers\ProductController::class, 'destroy']);
 

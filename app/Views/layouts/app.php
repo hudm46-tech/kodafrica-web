@@ -431,6 +431,7 @@ function render_sidebar(array $user): string {
         ['/dashboard', 'Dashboard', '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>'],
         ['/pos',       'Point of Sale', '<circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>'],
         ['/products',  'Stock', '<path d="M20 2L4 2c-1.1 0-2 .9-2 2v3c0 .7.4 1.3 1 1.6V21c0 .6.4 1 1 1h16c.6 0 1-.4 1-1V8.6c.6-.3 1-.9 1-1.6V4c0-1.1-.9-2-2-2zM13 18h-2v-4H7l5-5 5 5h-4v4z"/>'],
+        ['/purchases', 'Purchases', '<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>'],
         ['/sales',     'Sales History', '<path d="M6 2c-1.1 0-2 .9-2 2v3c0 .7.4 1.3 1 1.6V21c0 .6.4 1 1 1h16c.6 0 1-.4 1-1V8.6c.6-.3 1-.9 1-1.6V4c0-1.1-.9-2-2-2H6z"/>'],
     ];
     $items2 = [

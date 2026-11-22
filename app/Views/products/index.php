@@ -76,15 +76,11 @@
                         onclick="openStockModal(this)"
                         title="Remove stock"
                         style="width:34px;height:34px;border-radius:8px;background:rgba(255,23,68,.15);color:var(--red);border:none;cursor:pointer;font-weight:800;font-size:18px;line-height:1">−</button>
-                <button type="button"
-                        data-pid="<?= (int)$p['product_id'] ?>"
-                        data-name="<?= e($p['name']) ?>"
-                        data-stock="<?= (int)$p['quantity'] ?>"
-                        data-unit="<?= e($p['unit_of_measure']) ?>"
-                        data-mode="add"
-                        onclick="openStockModal(this)"
-                        title="Add stock"
-                        style="width:34px;height:34px;border-radius:8px;background:rgba(0,200,83,.15);color:var(--green);border:none;cursor:pointer;font-weight:800;font-size:18px;line-height:1">+</button>
+                <?php if (in_array(auth_role(), ['ADMIN', 'MANAGER'], true)): ?>
+                <a href="<?= url('/products/' . (int)$p['product_id'] . '/purchase') ?>"
+                   title="Add stock (record purchase)"
+                   style="width:34px;height:34px;border-radius:8px;background:rgba(0,200,83,.15);color:var(--green);display:flex;align-items:center;justify-content:center;text-decoration:none;font-weight:800;font-size:18px;line-height:1">+</a>
+                <?php endif; ?>
             </div>
             <div style="display:flex;gap:6px">
                 <a href="<?= url('/products/' . $p['product_id'] . '/edit') ?>" style="width:32px;height:32px;border-radius:8px;background:rgba(0,180,216,.15);color:var(--cyan);display:flex;align-items:center;justify-content:center">
