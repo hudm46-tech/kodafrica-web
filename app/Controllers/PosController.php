@@ -90,6 +90,7 @@ final class PosController
         $cart = $_SESSION['cart'] ?? [];
         if ($qty <= 0) {
             unset($cart[$productId]);
+            $this->dropPrice($productId);
         } else {
             $product = Product::find($productId);
             if (!$product || (int)$product['branch_id'] !== auth_branch()) {
@@ -98,6 +99,7 @@ final class PosController
             $qty = min($qty, (int)$product['quantity']);
             if ($qty <= 0) {
                 unset($cart[$productId]);
+                $this->dropPrice($productId);
             } else {
                 $cart[$productId] = $qty;
             }
@@ -118,6 +120,7 @@ final class PosController
         $productId = (int)($_POST['product_id'] ?? 0);
         $cart = $_SESSION['cart'] ?? [];
         unset($cart[$productId]);
+        $this->dropPrice($productId);
         $_SESSION['cart'] = $cart;
         echo json_encode([
             'ok'        => true,
@@ -131,7 +134,47 @@ final class PosController
     {
         if (!Auth::check()) { http_response_code(401); echo json_encode(['error' => 'auth']); return; }
         $_SESSION['cart'] = [];
+        $_SESSION['cart_price'] = [];
         echo json_encode(['ok' => true, 'cart' => [], 'count' => 0]);
+    }
+
+    // ---------- POST /pos/price ----------
+    // Set (or reset) a custom unit price for one cart line = a discount.
+    public function price(): void
+    {
+        if (!Auth::check()) { http_response_code(401); echo json_encode(['error' => 'auth']); return; }
+
+        $productId = (int)($_POST['product_id'] ?? 0);
+        $raw       = trim((string)($_POST['price'] ?? ''));
+        $cart      = $_SESSION['cart'] ?? [];
+
+        if (!isset($cart[$productId])) { echo json_encode(['error' => 'Item is not in the cart.']); return; }
+        $product = Product::find($productId);
+        if (!$product || (int)$product['branch_id'] !== auth_branch()) {
+            echo json_encode(['error' => 'Product not found']); return;
+        }
+
+        $list = round((float)$product['selling_price'], 2);
+        $prices = $_SESSION['cart_price'] ?? [];
+
+        if ($raw === '') {                                   // reset to the normal price
+            unset($prices[$productId]);
+        } else {
+            if (!is_numeric($raw)) { echo json_encode(['error' => 'Enter a valid price.']); return; }
+            $price = round((float)$raw, 2);
+            if ($price <= 0)    { echo json_encode(['error' => 'Price must be greater than zero.']); return; }
+            if ($price > $list) { echo json_encode(['error' => 'Price cannot be higher than the normal price (' . money($list) . ').']); return; }
+            $min = $this->minPrice($product);
+            if ($price < $min)  { echo json_encode(['error' => 'Lowest price you can set is ' . money($min) . '.']); return; }
+            if (abs($price - $list) < 0.005) unset($prices[$productId]); else $prices[$productId] = $price;
+        }
+        $_SESSION['cart_price'] = $prices;
+
+        echo json_encode([
+            'ok'    => true,
+            'cart'  => $this->buildCartDetail($cart, auth_branch()),
+            'count' => array_sum($cart),
+        ]);
     }
 
     // ---------- POST /pos/checkout ----------
@@ -181,10 +224,14 @@ final class PosController
                     throw new \RuntimeException("Insufficient stock for {$product['name']}. Available: {$product['quantity']}.");
                 }
 
-                $sellingPrice  = (float)$product['selling_price'];
+                $sellingPrice  = (float)$product['selling_price'];      // normal (list) price
                 $purchasePrice = (float)$product['purchase_price'];
-                $lineTotal     = $sellingPrice * $qty;
-                $lineDiscount  = 0;
+                $unitPrice     = $this->effectivePrice($product);       // price actually charged
+                if ($unitPrice < $this->minPrice($product) - 0.004) {
+                    throw new \RuntimeException("The price for {$product['name']} is below the lowest allowed (" . money($this->minPrice($product)) . "). Please adjust it.");
+                }
+                $lineTotal     = round($unitPrice * $qty, 2);
+                $lineDiscount  = round(($sellingPrice - $unitPrice) * $qty, 2);
 
                 Database::insert(
                     "INSERT INTO sales (branch_id, employee_id, product_id, product_name, quantity_sold,
@@ -225,6 +272,7 @@ final class PosController
 
             Database::commit();
             $_SESSION['cart'] = [];
+            $_SESSION['cart_price'] = [];
             $_SESSION['last_sale_ts'] = $saleGroupTs;
 
             Flash::success("Sale completed! $totalItems item" . ($totalItems === 1 ? '' : 's') . ", total " . money($totalAmount));
@@ -300,18 +348,41 @@ final class PosController
         foreach ($products as $p) {
             $qty = (int)($cart[$p['product_id']] ?? 0);
             if ($qty <= 0) continue;
-            $line = (float)$p['selling_price'] * $qty;
+            $eff  = $this->effectivePrice($p);
+            $line = round($eff * $qty, 2);
             $total += $line;
             $out[] = [
                 'product_id'  => (int)$p['product_id'],
                 'name'        => $p['name'],
                 'unit'        => $p['unit_of_measure'],
-                'price'       => (float)$p['selling_price'],
+                'price'       => $eff,
+                'list_price'  => (float)$p['selling_price'],
+                'min_price'   => $this->minPrice($p),
+                'custom'      => $eff < (float)$p['selling_price'] - 0.004,
                 'qty'         => $qty,
                 'stock'       => (int)$p['quantity'],
                 'line_total'  => $line,
             ];
         }
         return $out;
+    }
+
+    /** Price actually charged for a product: the cart's custom price, never above the normal price. */
+    private function effectivePrice(array $product): float
+    {
+        $list = (float)$product['selling_price'];
+        $custom = $_SESSION['cart_price'][(int)$product['product_id']] ?? null;
+        return $custom === null ? $list : min($list, (float)$custom);
+    }
+
+    /** Lowest price this user may charge: admins/managers any positive price, cashiers not below cost. */
+    private function minPrice(array $product): float
+    {
+        return in_array(auth_role(), ['ADMIN', 'MANAGER'], true) ? 0.01 : (float)$product['purchase_price'];
+    }
+
+    private function dropPrice(int $productId): void
+    {
+        if (isset($_SESSION['cart_price'][$productId])) unset($_SESSION['cart_price'][$productId]);
     }
 }

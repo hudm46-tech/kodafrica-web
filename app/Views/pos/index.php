@@ -1,6 +1,26 @@
 <?php
 $cartTotal = 0; $cartCount = 0;
 foreach ($cartDetail as $c) { $cartTotal += $c['line_total']; $cartCount += $c['qty']; }
+
+$cartItem = function (array $c): void {
+    $pid = (int)$c['product_id'];
+    ?>
+                    <div class="cart-item" data-pid="<?= $pid ?>">
+                        <div>
+                            <div class="name"><?= e($c['name']) ?></div>
+                            <div class="sub">
+                                <button type="button" class="price-edit" onclick="openPriceModal(<?= $pid ?>)" title="Adjust price">
+                                    <?php if (!empty($c['custom'])): ?><s class="was"><?= money($c['list_price']) ?></s> <?php endif; ?><?= money($c['price']) ?> × <?= (int)$c['qty'] ?> <?= e($c['unit']) ?> ✎
+                                </button>
+                                <?php if (!empty($c['custom'])): ?><span class="disc-chip">−<?= money(($c['list_price'] - $c['price']) * $c['qty']) ?></span><?php endif; ?>
+                            </div>
+                        </div>
+                        <button class="qty-btn minus" onclick="updateQty(<?= $pid ?>, <?= $c['qty'] - 1 ?>)">−</button>
+                        <div class="qty-display"><?= (int)$c['qty'] ?></div>
+                        <button class="qty-btn plus" onclick="updateQty(<?= $pid ?>, <?= $c['qty'] + 1 ?>)">+</button>
+                    </div>
+    <?php
+};
 ?>
 
 <style>
@@ -41,6 +61,9 @@ foreach ($cartDetail as $c) { $cartTotal += $c['line_total']; $cartCount += $c['
 .cart-item { display: grid; grid-template-columns: 1fr auto auto auto; gap: 10px; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--divider); }
 .cart-item .name { font-size: 13px; font-weight: 600; }
 .cart-item .sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.price-edit { background: none; border: none; padding: 0; margin: 0; font: inherit; font-size: 11px; color: var(--cyan); cursor: pointer; text-align: left; }
+.price-edit .was { color: var(--muted); opacity: .8; }
+.disc-chip { display: inline-block; margin-left: 4px; padding: 1px 6px; border-radius: 6px; background: rgba(255,145,0,.15); color: var(--orange); font-size: 10px; font-weight: 800; }
 .qty-btn { width: 26px; height: 26px; border-radius: 7px; border: none; cursor: pointer; font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center; }
 .qty-btn.minus { background: rgba(255,23,68,.15); color: var(--red); }
 .qty-btn.plus  { background: rgba(0,200,83,.15); color: var(--green); }
@@ -196,14 +219,7 @@ foreach ($cartDetail as $c) { $cartTotal += $c['line_total']; $cartCount += $c['
             <?php if (empty($cartDetail)): ?>
                 <div class="cart-empty"><div style="font-size:36px;margin-bottom:10px">🛒</div><div style="font-size:13px">Cart is empty</div><div style="font-size:11px;margin-top:4px">Tap products to add</div></div>
             <?php else: ?>
-                <?php foreach ($cartDetail as $c): ?>
-                    <div class="cart-item" data-pid="<?= $c['product_id'] ?>">
-                        <div><div class="name"><?= e($c['name']) ?></div><div class="sub"><?= money($c['price']) ?> × <?= $c['qty'] ?> <?= e($c['unit']) ?></div></div>
-                        <button class="qty-btn minus" onclick="updateQty(<?= $c['product_id'] ?>, <?= $c['qty'] - 1 ?>)">−</button>
-                        <div class="qty-display"><?= $c['qty'] ?></div>
-                        <button class="qty-btn plus" onclick="updateQty(<?= $c['product_id'] ?>, <?= $c['qty'] + 1 ?>)">+</button>
-                    </div>
-                <?php endforeach; ?>
+                <?php foreach ($cartDetail as $c) { $cartItem($c); } ?>
             <?php endif; ?>
         </div>
         <div class="cart-footer">
@@ -248,14 +264,7 @@ foreach ($cartDetail as $c) { $cartTotal += $c['line_total']; $cartCount += $c['
             <?php if (empty($cartDetail)): ?>
                 <div class="cart-empty"><div style="font-size:36px;margin-bottom:10px">🛒</div><div style="font-size:13px">Cart is empty</div></div>
             <?php else: ?>
-                <?php foreach ($cartDetail as $c): ?>
-                    <div class="cart-item" data-pid="<?= $c['product_id'] ?>">
-                        <div><div class="name"><?= e($c['name']) ?></div><div class="sub"><?= money($c['price']) ?> × <?= $c['qty'] ?> <?= e($c['unit']) ?></div></div>
-                        <button class="qty-btn minus" onclick="updateQty(<?= $c['product_id'] ?>, <?= $c['qty'] - 1 ?>)">−</button>
-                        <div class="qty-display"><?= $c['qty'] ?></div>
-                        <button class="qty-btn plus" onclick="updateQty(<?= $c['product_id'] ?>, <?= $c['qty'] + 1 ?>)">+</button>
-                    </div>
-                <?php endforeach; ?>
+                <?php foreach ($cartDetail as $c) { $cartItem($c); } ?>
             <?php endif; ?>
         </div>
         <div class="sheet-foot">
@@ -358,8 +367,30 @@ foreach ($cartDetail as $c) { $cartTotal += $c['line_total']; $cartCount += $c['
     </div>
 </div>
 
+<!-- ============ ADJUST PRICE MODAL ============ -->
+<div class="modal-overlay" id="priceModal" style="z-index:1001">
+    <div class="modal-content">
+        <h2 style="margin:0 0 4px;font-size:18px;font-weight:800" id="priceModalName">Adjust price</h2>
+        <p style="color:var(--muted);font-size:12px;margin:0 0 16px">
+            Normal price <b id="priceModalList" style="color:var(--text)"></b>
+            · Lowest allowed <b id="priceModalMin" style="color:var(--text)"></b>
+        </p>
+        <label style="display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;font-weight:700;margin-bottom:8px">New price per unit (TZS)</label>
+        <input type="number" id="priceInput" min="0" step="0.01" inputmode="decimal" oninput="onPriceInput()"
+               style="width:100%;padding:14px;background:#0A1929;border:1px solid rgba(255,255,255,.12);border-radius:12px;color:#fff;font-family:inherit;font-size:22px;font-weight:800">
+        <div id="priceModalInfo" style="font-size:12px;color:var(--muted);margin-top:10px;min-height:18px"></div>
+        <div id="priceModalError" style="font-size:12px;color:var(--red);margin-top:6px;min-height:16px;font-weight:600"></div>
+        <div style="display:flex;gap:10px;margin-top:14px">
+            <button type="button" onclick="closePriceModal()" class="btn" style="flex:1;background:rgba(255,255,255,.05);color:var(--text)">Cancel</button>
+            <button type="button" onclick="resetPrice()" class="btn" style="flex:1;background:rgba(255,145,0,.12);color:var(--orange)">Reset</button>
+            <button type="button" onclick="applyPrice()" class="btn btn-primary" style="flex:2">Apply</button>
+        </div>
+    </div>
+</div>
+
 <script>
 // ============ STATE ============
+window.CART = <?= json_encode($cartDetail, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
 let currentProduct = null;
 let currentQty = 1;
 
@@ -459,7 +490,19 @@ async function clearCart() {
     renderCart(json.cart || [], 0);
 }
 
+function cartItemHtml(c) {
+    const was = c.custom ? '<s class="was">' + money(c.list_price) + '</s> ' : '';
+    const chip = c.custom ? '<span class="disc-chip">−' + money((c.list_price - c.price) * c.qty) + '</span>' : '';
+    return `<div class="cart-item" data-pid="${c.product_id}">
+            <div><div class="name">${escapeHtml(c.name)}</div><div class="sub"><button type="button" class="price-edit" onclick="openPriceModal(${c.product_id})" title="Adjust price">${was}${money(c.price)} × ${c.qty} ${escapeHtml(c.unit)} ✎</button>${chip}</div></div>
+            <button class="qty-btn minus" onclick="updateQty(${c.product_id}, ${c.qty - 1})">−</button>
+            <div class="qty-display">${c.qty}</div>
+            <button class="qty-btn plus" onclick="updateQty(${c.product_id}, ${c.qty + 1})">+</button>
+        </div>`;
+}
+
 function renderCart(cart, count) {
+    window.CART = cart || [];
     const desktopBody = document.getElementById('cartBody');
     const mobileBody = document.getElementById('mobileCartBody');
     const desktopTotal = document.getElementById('cartTotal');
@@ -503,14 +546,7 @@ function renderCart(cart, count) {
     mobileViewBtn.disabled = false;
 
     let html = '';
-    for (const c of cart) {
-        html += `<div class="cart-item" data-pid="${c.product_id}">
-            <div><div class="name">${escapeHtml(c.name)}</div><div class="sub">${money(c.price)} × ${c.qty} ${escapeHtml(c.unit)}</div></div>
-            <button class="qty-btn minus" onclick="updateQty(${c.product_id}, ${c.qty - 1})">−</button>
-            <div class="qty-display">${c.qty}</div>
-            <button class="qty-btn plus" onclick="updateQty(${c.product_id}, ${c.qty + 1})">+</button>
-        </div>`;
-    }
+    for (const c of cart) html += cartItemHtml(c);
     desktopBody.innerHTML = html;
     mobileBody.innerHTML = html;
     desktopTotal.textContent = totalStr;
@@ -539,6 +575,54 @@ function selectPayment(btn) {
     document.getElementById('creditFields').style.display = (method === 'CREDIT') ? 'block' : 'none';
 }
 
+// ============ ADJUST PRICE ============
+let priceTarget = null;
+function openPriceModal(pid) {
+    const c = (window.CART || []).find(x => x.product_id === pid);
+    if (!c) return;
+    priceTarget = c;
+    document.getElementById('priceModalName').textContent = c.name;
+    document.getElementById('priceModalList').textContent = money(c.list_price);
+    document.getElementById('priceModalMin').textContent = c.min_price <= 0.01 ? 'any price' : money(c.min_price);
+    document.getElementById('priceModalError').textContent = '';
+    const input = document.getElementById('priceInput');
+    input.value = c.price;
+    document.getElementById('priceModal').classList.add('show');
+    onPriceInput();
+    setTimeout(() => { input.focus(); input.select(); }, 50);
+}
+function closePriceModal() { document.getElementById('priceModal').classList.remove('show'); priceTarget = null; }
+function onPriceInput() {
+    if (!priceTarget) return;
+    const v = parseFloat(document.getElementById('priceInput').value);
+    const info = document.getElementById('priceModalInfo');
+    document.getElementById('priceModalError').textContent = '';
+    if (!(v > 0)) { info.textContent = ''; return; }
+    const off = priceTarget.list_price - v;
+    if (off > 0.004) {
+        info.textContent = 'Discount ' + money(off) + ' per unit (' + (off / priceTarget.list_price * 100).toFixed(1) + '%) · line total ' + money(v * priceTarget.qty);
+    } else {
+        info.textContent = 'Line total ' + money(v * priceTarget.qty);
+    }
+}
+async function applyPrice() {
+    if (!priceTarget) return;
+    const v = document.getElementById('priceInput').value.trim();
+    const json = await postForm('<?= url('/pos/price') ?>', { product_id: priceTarget.product_id, price: v });
+    if (json.error) { document.getElementById('priceModalError').textContent = json.error; return; }
+    renderCart(json.cart, json.count);
+    closePriceModal();
+    showToast('Price updated', 'success');
+}
+async function resetPrice() {
+    if (!priceTarget) return;
+    const json = await postForm('<?= url('/pos/price') ?>', { product_id: priceTarget.product_id, price: '' });
+    if (json.error) { document.getElementById('priceModalError').textContent = json.error; return; }
+    renderCart(json.cart, json.count);
+    closePriceModal();
+    showToast('Price reset to normal', 'info');
+}
+
 function showToast(msg, type = 'info') {
     const div = document.createElement('div');
     div.textContent = msg;
@@ -549,6 +633,11 @@ function showToast(msg, type = 'info') {
 
 // Enter key = confirm
 document.addEventListener('keydown', (e) => {
+    if (document.getElementById('priceModal').classList.contains('show')) {
+        if (e.key === 'Enter') { e.preventDefault(); applyPrice(); }
+        if (e.key === 'Escape') closePriceModal();
+        return;
+    }
     if (e.key === 'Enter' && document.getElementById('qtyModal').classList.contains('show')) {
         e.preventDefault();
         confirmAddToCart();

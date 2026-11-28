@@ -77,6 +77,7 @@ $router->post('/products/{id}/delete',  [\App\Controllers\ProductController::cla
 $router->get('/pos',                    [\App\Controllers\PosController::class, 'index']);
 $router->post('/pos/add',               [\App\Controllers\PosController::class, 'add']);
 $router->post('/pos/update',            [\App\Controllers\PosController::class, 'update']);
+$router->post('/pos/price',            [\App\Controllers\PosController::class, 'price']);
 $router->post('/pos/remove',            [\App\Controllers\PosController::class, 'remove']);
 $router->post('/pos/clear',             [\App\Controllers\PosController::class, 'clear']);
 $router->post('/pos/checkout',          [\App\Controllers\PosController::class, 'checkout']);

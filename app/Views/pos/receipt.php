@@ -36,8 +36,11 @@
             <div class="name"><?= e($s['product_name']) ?></div>
             <div class="line">
                 <span><?= $s['quantity_sold'] ?> × <?= number_format((float)$s['selling_price_at_sale'], 0, '.', ',') ?></span>
-                <span><?= number_format((float)$s['total_amount'], 0, '.', ',') ?></span>
+                <span><?= number_format((float)$s['selling_price_at_sale'] * (int)$s['quantity_sold'], 0, '.', ',') ?></span>
             </div>
+            <?php if ((float)$s['discount'] > 0): ?>
+            <div class="line"><span>Discount</span><span>-<?= number_format((float)$s['discount'], 0, '.', ',') ?></span></div>
+            <?php endif; ?>
         </div>
     <?php endforeach; ?>
 
